@@ -1,0 +1,343 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════
+   DSC PUCP Scoreboard — "Arena" design system
+   A broadcast board: near-black green canvas, one signal green,
+   gold reserved exclusively for the leader.
+   ═══════════════════════════════════════════════════════════ */
+
+@theme {
+  /* Canvas & surfaces — four steps of depth, nothing more */
+  --color-ink: #060b08;
+  --color-ink-2: #0a110d;
+  --color-surface: #0e1712;
+  --color-surface-2: #14201a;
+
+  /* Hairlines */
+  --color-line: #1b2922;
+  --color-line-2: #28392f;
+
+  /* Accents */
+  --color-signal: #35e08a; /* the one accent: action, focus, live */
+  --color-signal-dim: #1c8e56;
+  --color-brand: #0f6e3e; /* DSC green, kept as the root of the palette */
+  --color-gold: #f5b942; /* leader only — never decorative */
+  --color-gold-dim: #7d5c1c;
+  --color-danger: #ff6b6b;
+
+  /* The PUCP purple from the official logo (#35318F), lifted for a dark
+     canvas. Identity only — it never carries state or meaning. */
+  --color-pucp: #8b84f2;
+
+  /* Type */
+  --color-text: #e6f1ea;
+  --color-text-dim: #86a093;
+  --color-text-faint: #4f645a;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+  --font-display: var(--font-space-grotesk), var(--font-geist-sans), system-ui,
+    sans-serif;
+}
+
+html {
+  background-color: var(--color-ink);
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Numbers are the product. Never let them dance. */
+.numerals {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Tiny tracked uppercase labels — the schematic voice of the board */
+@utility label-xs {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  /* Enough leading for uppercase diacritics (LÍDER) to survive `truncate` */
+  line-height: 1.4;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Controls that borrow their lane's accent on hover. The team color is fed in
+   as --accent by the component; the board falls back to signal green. */
+.chip-accent {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.chip-accent:hover {
+  background-color: color-mix(
+    in oklab,
+    var(--accent, var(--color-signal)) 18%,
+    transparent
+  );
+  color: var(--accent, var(--color-signal));
+}
+.chip-accent:active {
+  background-color: color-mix(
+    in oklab,
+    var(--accent, var(--color-signal)) 30%,
+    transparent
+  );
+}
+.chip-accent:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background-color: transparent;
+  color: var(--color-text-faint);
+}
+
+/* Subtracting points is a different gesture from awarding them, so it reads in
+   the danger register instead of borrowing the team's color. */
+.chip-danger {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.chip-danger:hover:not(:disabled) {
+  background-color: color-mix(in oklab, var(--color-danger) 16%, transparent);
+  color: var(--color-danger);
+}
+.chip-danger:active:not(:disabled) {
+  background-color: color-mix(in oklab, var(--color-danger) 26%, transparent);
+}
+.chip-danger:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Arena backdrop ────────────────────────────────────────
+   Static layered field: a measurement grid that fades out,
+   plus a single cold glow behind the top of the board.       */
+
+.arena {
+  position: relative;
+  isolation: isolate;
+}
+
+.arena::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-image:
+    linear-gradient(to right, #ffffff0a 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff0a 1px, transparent 1px);
+  background-size: 72px 72px;
+  background-position: center top;
+  -webkit-mask-image: radial-gradient(
+    120% 80% at 50% 0%,
+    #000 0%,
+    #0009 45%,
+    transparent 85%
+  );
+  mask-image: radial-gradient(
+    120% 80% at 50% 0%,
+    #000 0%,
+    #0009 45%,
+    transparent 85%
+  );
+  pointer-events: none;
+}
+
+.arena::after {
+  content: "";
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  height: 60vh;
+  z-index: -1;
+  background: radial-gradient(
+    70% 100% at 50% 0%,
+    color-mix(in oklab, var(--color-signal) 9%, transparent) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* ── Motion ──────────────────────────────────────────────── */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lane-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes lane-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+
+@keyframes rise-up {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.85);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-28px) scale(1);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-signal) 55%, transparent);
+  }
+  70% {
+    opacity: 0.75;
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+@keyframes sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.35s ease-out both;
+}
+.animate-lane-in {
+  animation: lane-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-lane-out {
+  animation: lane-out 0.25s ease-in both;
+}
+.animate-rise-up {
+  animation: rise-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-pop {
+  animation: pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.animate-shake {
+  animation: shake 0.4s ease-out;
+}
+.animate-live {
+  animation: live-pulse 2.4s ease-out infinite;
+}
+.animate-sweep {
+  animation: sweep 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* ── Focus: one consistent ring across the whole board ───── */
+
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-ink-2);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line-2);
+  border: 3px solid var(--color-ink-2);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-signal-dim);
+}
+
+/* Strip the number spinners — the board has its own controls */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
